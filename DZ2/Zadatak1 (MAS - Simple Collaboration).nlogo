@@ -1,93 +1,129 @@
-; Izmijeniti D2 - Stochastic Environment simulaciju na način da se pametni usisavač
-; uvijek kreće prema najbližem prljavom dijelu prostorije, dok cijela prostorije nije čista.
+; Izmijeniti MAS - Simple Colaboration na način da od dva agenta jedan može samo percipirati stijenu na dijelu okruženja na kojem se nalazi, a
+; drugi samo može uzeti uzorak. Nakon što prvi agent otkrije stijenu, dojavljuje drugom poziciju, a drugi najbližom rutom dolazi do stijedne i uzima uzorak.
 
-globals
-[
-  dirt-probability
-  dirt-count
+globals [
+  samples
+  sample1
+  samples-coords
+  colors
+  br_uzoraka
+  prikupljeni_uzorci
 ]
-                         ;; globalna varijabla za pojavljivanje nasumicne "prljavstine"
+
 to setup
-  clear-all              ;; briše sve postavke iz prethodnih pokušaja
-  set dirt-count 0       ;; postavlja brojac "prljavih" celija na 0
-
-  create-turtles 1       ;; kreira se 1 agent (usisivac)
+  clear-all
+  clear-output
+  create-turtles 2
   [
-    set shape "ufo top"
-    set color red
+    set samples [cyan white yellow]
+    set samples-coords []
+    set colors []
   ]
+  ;; kreiraju se 2 rovera
 
-  ask turtles
+  set br_uzoraka 0
+  set prikupljeni_uzorci 0
+
+  ask turtle 0
   [
-    setxy -6 -6          ;; usisivac se postavlja u donju lijevu celiju prostorije
+    set shape "target"
+    set color pink
+    setxy -8 -6          ;; prvi rover se postavlja u donju lijevu celiju
     set heading 90       ;; i okrece udesno
   ]
 
-  ask n-of 15 patches    ;; postavlja se "prljavstina" na slucajnih 15 polja prostorije
+  ask turtle 1
   [
-    set pcolor grey
+    set shape "target"
+    set color red
+    setxy 8 6            ;; drugi rover se postavlja u gornju desnu celiju
+    set heading 270      ;; i okrece ulijevo
   ]
+
+  ;; postavljanje "stijena" u okružanju
+  ask n-of 5 patches [ set pcolor cyan ]
+  ask n-of 5 patches [ set pcolor white ]
+  ask n-of 5 patches [ set pcolor yellow ]
 
   reset-ticks
 end
 
 to go
-  if (count patches with [pcolor = gray] = 0)
-                          ;; ako nema "prljavih" celija
+  ask turtle 0
   [
-    show "Done!"          ;; ispisuje se poruka o zavrsenom ciscenju
-    stop                  ;; i zaustavlja se simulacija
+    agent1
   ]
 
-  ask turtles
+  if prikupljeni_uzorci = 3
   [
-    clean                ;; ukoliko usisivac nije u gornjoj desnoj celiji
-  ]                      ;; poziva se funkcija kretanja usisivaca
-
-  set dirt-probability random 100
-                         ;; generira se slucajan broj manji od 100
-  if dirt-probability >= 89
-                         ;; i ako je veci ili jendak od 90 (11%)
-  [
-    ask n-of 1 patches [ set pcolor gray ]
-                         ;; nasumicna celija se "prlja" (boji u sivo)
+    print (word "Prikupljeni uzorci: " colors)
+    stop
   ]
 
   tick
 end
 
-to clean
-  if any? patches with [pcolor = grey] ; provjeri siva polja
-  [
-    if-there-is-dirty-patch ; ako postoji sivo polje pokreni funkciju čišćenja i kretanja
+to agent1 ;; funkcija agenta 1 koji trazi uzorke i poziva agenta 2 kada pronadje uzorak
+  if br_uzoraka = 3 [      ; kada agent1 prikupi 3 uzorka
+    ask turtle 0 [ move-to patch -8 -6 ] ; vrati agent1 na startnu poziciju
+    ask turtle 1 [ agent2 ]
   ]
-end
 
-to if-there-is-dirty-patch
-  let nearest-dirty-patch min-one-of patches with [pcolor = grey] [distance myself]
-  if nearest-dirty-patch != nobody
-  [
-    face nearest-dirty-patch
-    fd 1
-    set pcolor black
-
-    if [pcolor] of nearest-dirty-patch = black
-    [
-      update-dirty-count
+  let target-patch min-one-of patches with [member? pcolor samples] [distance myself]
+  if target-patch != nobody [
+    ask turtle 0 [
+      face target-patch
+      fd 1
+      let sample-color [pcolor] of patch-here ; uzimamo trenutnu boju na kojem se agent nalazi
+      if (member? sample-color samples) [
+        set samples remove sample-color samples
+        set samples-coords lput (list pxcor pycor) samples-coords
+        set br_uzoraka br_uzoraka + 1
+        show (word "Uzorak pronađen!")
+        show (word "Koordinate prikupljenih uzoraka: " samples-coords)
+      ]
     ]
   ]
-  stop
 end
 
-to update-dirty-count
-  set dirt-count dirt-count + 1
-  type "Prljavstina: " type dirt-count print""
+to agent2 ;; funkcija kretanja agenta 2
+  if not empty? samples-coords[
+    set sample1 last samples-coords ; uzima posljednju koordinatu uzorka iz liste
+    let heading-patch patch item 0 sample1 item 1 sample1 ; uzima uzorak (patch) koji uzima prvi element liste (koordinata x) i drugi element (koordinata y) -> prethodno navedenom posljednjem uzorku
+    face heading-patch
+    fd 1
+
+    if ([pcolor] of patch-here = white) [
+      if not (member? "White" colors ) [
+        set colors lput "White" colors
+        set prikupljeni_uzorci (prikupljeni_uzorci + 1)
+      ]
+    ]
+    if ([pcolor] of patch-here = cyan) [
+      if not (member? "Cyan" colors ) [
+        set colors lput "Cyan" colors
+        set prikupljeni_uzorci (prikupljeni_uzorci + 1)
+      ]
+    ]
+    if ([pcolor] of patch-here = yellow) [
+      if not (member? "Yellow" colors ) [
+        set colors lput "Yellow" colors
+        set prikupljeni_uzorci (prikupljeni_uzorci + 1)
+      ]
+    ]
+
+    ; za uklanjanje trenutnih koordinata uzorka nakon što je prethodno pokupljen
+    let helplist[] ; pomocna lista
+    set helplist lput pxcor helplist ; trenutni uzorak sa x-koordinatom
+    set helplist lput pycor helplist ; trenutni uzorak sa y-koordinatom
+    set samples-coords remove helplist samples-coords
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-608
+728
 409
 -1
 -1
@@ -101,8 +137,8 @@ GRAPHICS-WINDOW
 0
 0
 1
--6
-6
+-8
+8
 -6
 6
 0
@@ -112,10 +148,10 @@ ticks
 30.0
 
 BUTTON
-13
-22
-76
-55
+21
+31
+84
+64
 setup
 setup
 NIL
@@ -129,10 +165,10 @@ NIL
 1
 
 BUTTON
-83
-22
-146
-55
+92
+31
+155
+64
 go
 go
 T
@@ -146,27 +182,15 @@ NIL
 1
 
 @#$#@#$#@
-## OPIS MODELA
-
-Primjer simulira rad agenta koji pokreće usisivač u pravokutnoj prostoriji. Na početku se postavlja "prljavština" u 15 nasumično odabranih ćelija prostorije (tj. ćelije se oboje sivo). 
-
-Ukoliko usisivač, prilikom kretanja, naiđe na prljavštinu očisti je (tj. ćelija se oboji crno) i ispisuje se poruka o pronađenoj prljavštini. Nasumično se u prostoriji pojavljuje nova prljavština. Nakon obilaska cijele prostorije usisivač se vraća na početnu poziciju i nastavlja sa čišćenjem.  
-
-Nakon što usisivač počisti cijelu prostoriju, simulacija se zaustavlja. 
+## OPIS PRIMJERA
+U ovom primjeru je ponovno opisan rad agenata koji upravljaju roverima na Marsu, a svaki od njih ima zadatak prikupljanje uzoraka određenih stijena. Roveri se kreću unaprijed definiranim putanjama i ukoliko naiđu na stijenu odgovarajuće vrste, uzimaju njen uzorak.  
 
 ## MODIFIKACIJA
+Rover 1 prikuplja indekse uzorka od svake stijene. Nakon pronalaska šalje indekse Roveru 2 koji potom ide i skuplja uzorke svake stijene prema navedenom indeksu.
 
-**KRETANJE** usisavača je optimizirano, što nam govori da se kreće prema sljedećoj najbliže pronađenoj prljavštini. 
-
-## VRSTA OKRUŽENJA
-
-Po kriteriju **determinističnosti** ovo je **stohastičko** okruženje jer nakon primjene određene akcije agenta postoji nesigurnost oko novog stanja okruženja. 
-
-U ovom primjeru nesigurnost je uzrokovana nasumičnim pojavljivanjem dodatne prljavštine u prostoriji.
-  
-## KAKO KORISTITI MODEL
-
-Potrebno je smanjiti brzinu izmjene otkucaja (klizač *ticks* iznad prozora simulacije) kako bi se mogla pratiti simulacija.
+## VRSTA INTERAKCIJE
+Ciljevi agenata su kompatibilni a količina raspoloživih resursa u okruženju je dovoljna za sve agente. Za razliku od prethodnog primjera, sposobnosti pojedinih agenata nisu dovoljne da pojedinačno ostvare svoj cilj. Mogu ga ostvariti samo suradnjom.
+Ovaj tip interakcije je jednostavna suradnja. Jednostavna suradnja sastoji se od jednostavnog zbrajanja vještina pojedinih agenata, bez zahtjeva za dodatnim aktivnostima koordinacije među uključenim agentima.
 @#$#@#$#@
 default
 true
@@ -447,29 +471,21 @@ Polygon -10899396 true false 132 85 134 64 107 51 108 17 150 2 192 18 192 52 169
 Polygon -10899396 true false 85 204 60 233 54 254 72 266 85 252 107 210
 Polygon -7500403 true true 119 75 179 75 209 101 224 135 220 225 175 261 128 261 81 224 74 135 88 99
 
-ufo top
+ufo side
 false
 0
-Circle -1 true false 15 15 270
-Circle -16777216 false false 15 15 270
-Circle -7500403 true true 75 75 150
-Circle -16777216 false false 75 75 150
-Circle -7500403 true true 60 60 30
-Circle -7500403 true true 135 30 30
-Circle -7500403 true true 210 60 30
-Circle -7500403 true true 240 135 30
-Circle -7500403 true true 210 210 30
-Circle -7500403 true true 135 240 30
-Circle -7500403 true true 60 210 30
-Circle -7500403 true true 30 135 30
-Circle -16777216 false false 30 135 30
-Circle -16777216 false false 60 210 30
-Circle -16777216 false false 135 240 30
-Circle -16777216 false false 210 210 30
-Circle -16777216 false false 240 135 30
-Circle -16777216 false false 210 60 30
-Circle -16777216 false false 135 30 30
-Circle -16777216 false false 60 60 30
+Polygon -1 true false 0 150 15 180 60 210 120 225 180 225 240 210 285 180 300 150 300 135 285 120 240 105 195 105 150 105 105 105 60 105 15 120 0 135
+Polygon -16777216 false false 105 105 60 105 15 120 0 135 0 150 15 180 60 210 120 225 180 225 240 210 285 180 300 150 300 135 285 120 240 105 210 105
+Polygon -7500403 true true 60 131 90 161 135 176 165 176 210 161 240 131 225 101 195 71 150 60 105 71 75 101
+Circle -16777216 false false 255 135 30
+Circle -16777216 false false 180 180 30
+Circle -16777216 false false 90 180 30
+Circle -16777216 false false 15 135 30
+Circle -7500403 true true 15 135 30
+Circle -7500403 true true 90 180 30
+Circle -7500403 true true 180 180 30
+Circle -7500403 true true 255 135 30
+Polygon -16777216 false false 150 59 105 70 75 100 60 130 90 160 135 175 165 175 210 160 240 130 225 100 195 70
 
 wheel
 false

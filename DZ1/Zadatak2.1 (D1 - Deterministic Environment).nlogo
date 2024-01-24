@@ -60,13 +60,18 @@ to if-there-is-dirty-patch
     face nearest-dirty-patch
     fd 1
     set pcolor black
-    update-dirty-count
+
+    if [pcolor] of nearest-dirty-patch = black
+    [
+      update-dirty-count
+    ]
   ]
 end
 
 to update-dirty-count
   set dirt-count dirt-count + 1
-  type "Dirt: " type dirt-count print""
+  type (word "Prljavstina: " dirt-count) print ""
+  wait 1
 end
 @#$#@#$#@
 GRAPHICS-WINDOW

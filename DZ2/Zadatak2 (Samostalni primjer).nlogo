@@ -1,93 +1,63 @@
-; Izmijeniti D2 - Stochastic Environment simulaciju na način da se pametni usisavač
-; uvijek kreće prema najbližem prljavom dijelu prostorije, dok cijela prostorije nije čista.
+; Osmisliti primjer koji bi prikazao višeagentski sustav u kojem se javlja pojedinačni sukob oko resursa
+; (ciljevi nekompatiblni, vještine dostatne, resursi nedostatni)
 
-globals
-[
-  dirt-probability
-  dirt-count
-]
-                         ;; globalna varijabla za pojavljivanje nasumicne "prljavstine"
+turtles-own [ resources ]
+
 to setup
-  clear-all              ;; briše sve postavke iz prethodnih pokušaja
-  set dirt-count 0       ;; postavlja brojac "prljavih" celija na 0
-
-  create-turtles 1       ;; kreira se 1 agent (usisivac)
-  [
-    set shape "ufo top"
-    set color red
+  clear-all
+  create-turtles 5[
+    setxy random-xcor random-ycor
+    set color green
+    set shape "squirrel"
+    set resources 5
   ]
-
-  ask turtles
-  [
-    setxy -6 -6          ;; usisivac se postavlja u donju lijevu celiju prostorije
-    set heading 90       ;; i okrece udesno
+ repeat 10 [
+  let random-patch one-of patches with [not any? turtles-here]
+  ask random-patch [
+    set pcolor brown
   ]
-
-  ask n-of 15 patches    ;; postavlja se "prljavstina" na slucajnih 15 polja prostorije
-  [
-    set pcolor grey
   ]
-
   reset-ticks
 end
 
 to go
-  if (count patches with [pcolor = gray] = 0)
-                          ;; ako nema "prljavih" celija
-  [
-    show "Done!"          ;; ispisuje se poruka o zavrsenom ciscenju
-    stop                  ;; i zaustavlja se simulacija
+  let winning-agent count turtles with [color = green]
+  if winning-agent = 1 [
+    show (word "Pobjednik agent indeksa: " [who] of one-of turtles with [color = green])
+    stop
   ]
 
-  ask turtles
-  [
-    clean                ;; ukoliko usisivac nije u gornjoj desnoj celiji
-  ]                      ;; poziva se funkcija kretanja usisivaca
-
-  set dirt-probability random 100
-                         ;; generira se slucajan broj manji od 100
-  if dirt-probability >= 89
-                         ;; i ako je veci ili jendak od 90 (11%)
-  [
-    ask n-of 1 patches [ set pcolor gray ]
-                         ;; nasumicna celija se "prlja" (boji u sivo)
+  let remaining-agents count turtles with [color = white]
+  if remaining-agents = 5 [
+    show "Nema pobjednika!"
+    stop
   ]
-
-  tick
+  move
 end
 
-to clean
-  if any? patches with [pcolor = grey] ; provjeri siva polja
-  [
-    if-there-is-dirty-patch ; ako postoji sivo polje pokreni funkciju čišćenja i kretanja
-  ]
-end
-
-to if-there-is-dirty-patch
-  let nearest-dirty-patch min-one-of patches with [pcolor = grey] [distance myself]
-  if nearest-dirty-patch != nobody
-  [
-    face nearest-dirty-patch
-    fd 1
-    set pcolor black
-
-    if [pcolor] of nearest-dirty-patch = black
-    [
-      update-dirty-count
+to move
+  ask turtles [
+    ifelse resources = 0 [
+      set color white
+    ][
+      let target-patch min-one-of (patches with [pcolor = brown]) [distance myself]
+      if target-patch != nobody  [
+        face target-patch
+        fd 1
+        set resources resources - 1
+        if pcolor != black [
+          set pcolor black
+          set resources random 5 + 1 ; dodajemo nasumičan broj traženih resursa (1-5) svakom agentu
+        ]
+      ]
     ]
   ]
-  stop
-end
-
-to update-dirty-count
-  set dirt-count dirt-count + 1
-  type "Prljavstina: " type dirt-count print""
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-608
+728
 409
 -1
 -1
@@ -101,8 +71,8 @@ GRAPHICS-WINDOW
 0
 0
 1
--6
-6
+-8
+8
 -6
 6
 0
@@ -112,10 +82,10 @@ ticks
 30.0
 
 BUTTON
-13
-22
-76
-55
+20
+37
+83
+70
 setup
 setup
 NIL
@@ -129,10 +99,10 @@ NIL
 1
 
 BUTTON
-83
-22
-146
-55
+92
+37
+155
+70
 go
 go
 T
@@ -146,32 +116,44 @@ NIL
 1
 
 @#$#@#$#@
-## OPIS MODELA
+## OPIS PRIMJERA
 
-Primjer simulira rad agenta koji pokreće usisivač u pravokutnoj prostoriji. Na početku se postavlja "prljavština" u 15 nasumično odabranih ćelija prostorije (tj. ćelije se oboje sivo). 
+Prikazan je sukob 5 agenata oko resursa (žireva). Svaki agent na početku dobiva 5 resursa, te se kreće prema najbližem resursu. Kada skupi resurs njegov broj resursa se uveća za nasumičan broj 1-5. 
 
-Ukoliko usisivač, prilikom kretanja, naiđe na prljavštinu očisti je (tj. ćelija se oboji crno) i ispisuje se poruka o pronađenoj prljavštini. Nasumično se u prostoriji pojavljuje nova prljavština. Nakon obilaska cijele prostorije usisivač se vraća na početnu poziciju i nastavlja sa čišćenjem.  
+Svaki agent predstavlja vjevericu koja sakuplja žireve kako bi preživjela zimu. Pobjeđuje ona vjeverica koja je je sakupila dovoljno hrane za zimu, tj. najviše žireva (onaj agent koji "nadživi" sve ostale).
 
-Nakon što usisivač počisti cijelu prostoriju, simulacija se zaustavlja. 
+Nakon svakog skupljenog žira, vjeverici se dodaje nasumičan broj žireva (između 1 i 5) kako bi povećala svoje zalihe hrane. Ako vjeverica potroši sve svoje žireve (postane bijela). 
 
-## MODIFIKACIJA
-
-**KRETANJE** usisavača je optimizirano, što nam govori da se kreće prema sljedećoj najbliže pronađenoj prljavštini. 
-
-## VRSTA OKRUŽENJA
-
-Po kriteriju **determinističnosti** ovo je **stohastičko** okruženje jer nakon primjene određene akcije agenta postoji nesigurnost oko novog stanja okruženja. 
-
-U ovom primjeru nesigurnost je uzrokovana nasumičnim pojavljivanjem dodatne prljavštine u prostoriji.
-  
-## KAKO KORISTITI MODEL
-
-Potrebno je smanjiti brzinu izmjene otkucaja (klizač *ticks* iznad prozora simulacije) kako bi se mogla pratiti simulacija.
+Natjecanje završava kada ostane samo jedna vjeverica (pobjednik), a ako sve vjeverice potroše svoje zalihe hrane tada NEMA POBJEDNIKA.
 @#$#@#$#@
 default
 true
 0
 Polygon -7500403 true true 150 5 40 250 150 205 260 250
+
+acorn
+false
+0
+Polygon -7500403 true true 146 297 120 285 105 270 75 225 60 180 60 150 75 105 225 105 240 150 240 180 225 225 195 270 180 285 155 297
+Polygon -6459832 true false 121 15 136 58 94 53 68 65 46 90 46 105 75 115 234 117 256 105 256 90 239 68 209 57 157 59 136 8
+Circle -16777216 false false 223 95 18
+Circle -16777216 false false 219 77 18
+Circle -16777216 false false 205 88 18
+Line -16777216 false 214 68 223 71
+Line -16777216 false 223 72 225 78
+Line -16777216 false 212 88 207 82
+Line -16777216 false 206 82 195 82
+Line -16777216 false 197 114 201 107
+Line -16777216 false 201 106 193 97
+Line -16777216 false 198 66 189 60
+Line -16777216 false 176 87 180 80
+Line -16777216 false 157 105 161 98
+Line -16777216 false 158 65 150 56
+Line -16777216 false 180 79 172 70
+Line -16777216 false 193 73 197 66
+Line -16777216 false 237 82 252 84
+Line -16777216 false 249 86 253 97
+Line -16777216 false 240 104 252 96
 
 airplane
 true
@@ -387,6 +369,22 @@ false
 Rectangle -7500403 true true 30 30 270 270
 Rectangle -16777216 true false 60 60 240 240
 
+squirrel
+false
+0
+Polygon -7500403 true true 87 267 106 290 145 292 157 288 175 292 209 292 207 281 190 276 174 277 156 271 154 261 157 245 151 230 156 221 171 209 214 165 231 171 239 171 263 154 281 137 294 136 297 126 295 119 279 117 241 145 242 128 262 132 282 124 288 108 269 88 247 73 226 72 213 76 208 88 190 112 151 107 119 117 84 139 61 175 57 210 65 231 79 253 65 243 46 187 49 157 82 109 115 93 146 83 202 49 231 13 181 12 142 6 95 30 50 39 12 96 0 162 23 250 68 275
+Polygon -16777216 true false 237 85 249 84 255 92 246 95
+Line -16777216 false 221 82 213 93
+Line -16777216 false 253 119 266 124
+Line -16777216 false 278 110 278 116
+Line -16777216 false 149 229 135 211
+Line -16777216 false 134 211 115 207
+Line -16777216 false 117 207 106 211
+Line -16777216 false 91 268 131 290
+Line -16777216 false 220 82 213 79
+Line -16777216 false 286 126 294 128
+Line -16777216 false 193 284 206 285
+
 star
 false
 0
@@ -446,30 +444,6 @@ Polygon -10899396 true false 105 90 75 75 55 75 40 89 31 108 39 124 60 105 75 10
 Polygon -10899396 true false 132 85 134 64 107 51 108 17 150 2 192 18 192 52 169 65 172 87
 Polygon -10899396 true false 85 204 60 233 54 254 72 266 85 252 107 210
 Polygon -7500403 true true 119 75 179 75 209 101 224 135 220 225 175 261 128 261 81 224 74 135 88 99
-
-ufo top
-false
-0
-Circle -1 true false 15 15 270
-Circle -16777216 false false 15 15 270
-Circle -7500403 true true 75 75 150
-Circle -16777216 false false 75 75 150
-Circle -7500403 true true 60 60 30
-Circle -7500403 true true 135 30 30
-Circle -7500403 true true 210 60 30
-Circle -7500403 true true 240 135 30
-Circle -7500403 true true 210 210 30
-Circle -7500403 true true 135 240 30
-Circle -7500403 true true 60 210 30
-Circle -7500403 true true 30 135 30
-Circle -16777216 false false 30 135 30
-Circle -16777216 false false 60 210 30
-Circle -16777216 false false 135 240 30
-Circle -16777216 false false 210 210 30
-Circle -16777216 false false 240 135 30
-Circle -16777216 false false 210 60 30
-Circle -16777216 false false 135 30 30
-Circle -16777216 false false 60 60 30
 
 wheel
 false

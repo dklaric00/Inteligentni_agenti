@@ -35,7 +35,7 @@ end
 to go
   ifelse not stop-flag
   [
-    if ticks mod 21 = 0  ; za svaku vrijednost tickova koja je djeljiva sa 20 automatski stvori novi proizvod
+    if ticks mod 21 = 0  ; za svaku vrijednost tickova koja je djeljiva sa 21 automatski stvori novi proizvod
     [
       new-product
       show (word "TICK: " ticks)
@@ -86,7 +86,7 @@ end
 
 to set-xy-bad ;; funkcija postavljanja koordinata za neispravan proizvod
   setxy badx bady
-  ifelse (badx = -6)
+  ifelse (badx = 6)
   [
     set bady (bady - 1)
     set badx 5

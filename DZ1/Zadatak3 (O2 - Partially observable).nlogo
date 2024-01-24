@@ -15,7 +15,7 @@ to setup
 
   draw-road              ;; funkcija koja crta cestu
 
-  create-cars 5          ;; kreira se 5 agenata (vozila)
+  create-cars 6          ;; kreira se 5 agenata (vozila)
 
   ask cars
   [
@@ -37,7 +37,7 @@ to setup
 
   ask patch 6 6
   [
-    set pcolor red       ;; pali se srveno svjetlo semafora
+    set pcolor red       ;; pali se crveno svjetlo semafora
   ]
 
   reset-ticks
@@ -71,19 +71,19 @@ end
 
 to avoid-obstacles ;; funkcija za izbjegavanje prepreka
   ifelse any? obstacles-on patch-ahead 1
-  [           ; iznad sivo polje                             ; nema prepreke iznad                            ; nema auta iznad
-    ifelse ( ([pcolor] of patch xcor (ycor + 1) = gray) and (not any? obstacles-on patch xcor (ycor + 1)) and (not any? cars-on patch xcor (ycor + 1))
-      and (not any? obstacles-on patch (xcor + 1) (ycor + 1)) and (not any? obstacles-on patch (xcor + 2) (ycor + 1)) )
-    [      ; nema prepreke za 1 polje naprijed-gore                       ; nema prepreke za 2 polja naprijed-gore
-      set heading 0
+  [             ; ispod sivo polje                             ; nema prepreke ispod                            ; nema auta ipod
+    ifelse ( ([pcolor] of patch xcor (ycor - 1) = gray) and (not any? obstacles-on patch xcor (ycor - 1)) and (not any? cars-on patch xcor (ycor - 1))
+        and (not any? obstacles-on patch (xcor + 1) (ycor - 1)) and (not any? obstacles-on patch(xcor + 2) (ycor - 1)) )
+    [      ; nema prepreke za 1 polje naprijed-dolje                       ; nema prepreke za 2 polja naprijed-dolje
+      set heading 180
       fd 1
       set heading 90
     ]
-    [          ; ispod sivo polje                             ; nema prepreke ispod                            ; nema auta ipod
-      ifelse ( ([pcolor] of patch xcor (ycor - 1) = gray) and (not any? obstacles-on patch xcor (ycor - 1)) and (not any? cars-on patch xcor (ycor - 1))
-        and (not any? obstacles-on patch (xcor + 1) (ycor - 1)) and (not any? obstacles-on patch(xcor + 2) (ycor - 1)) )
-      [      ; nema prepreke za 1 polje naprijed-dolje                       ; nema prepreke za 2 polja naprijed-dolje
-        set heading 180
+    [           ; iznad sivo polje                             ; nema prepreke iznad                            ; nema auta iznad
+      ifelse ( ([pcolor] of patch xcor (ycor + 1) = gray) and (not any? obstacles-on patch xcor (ycor + 1)) and (not any? cars-on patch xcor (ycor + 1))
+      and (not any? obstacles-on patch (xcor + 1) (ycor + 1)) and (not any? obstacles-on patch (xcor + 2) (ycor + 1)) )
+      [      ; nema prepreke za 1 polje naprijed-gore                       ; nema prepreke za 2 polja naprijed-gore
+        set heading 0
         fd 1
         set heading 90
       ]

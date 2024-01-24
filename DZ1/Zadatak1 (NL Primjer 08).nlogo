@@ -69,7 +69,7 @@ end
 
 ; agentska funkcija koja omogućava kretanje po trgovini
 to walk
-  let nearest-article-patch min-one-of patches with [member? pcolor shopping-list-num] [distance myself] ; udaljenost do sljedeceg patch-a ako postoji njegova oznaka boje
+  let nearest-article-patch min-one-of patches with [member? pcolor shopping-list-num] [distance myself] ; udaljenost od trenutne lok. agenta do sljedeceg patch-a ako postoji njegova oznaka boje
   ifelse nearest-article-patch != nobody
   [
     face nearest-article-patch
